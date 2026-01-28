@@ -1,2 +1,6 @@
 node_modules
-bun.lock
+bun.lockdata/
+logs/
+*.db
+*.cbloom
+*.log
