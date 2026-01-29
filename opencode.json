@@ -7,7 +7,6 @@
       "enabled": true,
       "environment": {
         "PERSONAL_DB_PATH": "/Volumes/ExternalSSD/opencode-memory/personal.db",
-        "WORK_DB_PATH": "/Volumes/ExternalSSD/opencode-memory/work.db",
         "DEFAULT_CONTEXT": "personal"
       }
     }
