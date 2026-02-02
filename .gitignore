@@ -1,6 +1,7 @@
 node_modules
 bun.lockdata/
 logs/
+__pycache__/
 *.db
 *.cbloom
 *.log

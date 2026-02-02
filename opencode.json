@@ -10,6 +10,14 @@
         "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
       },
       "enabled": true
+    },
+    "searchWeb": {
+      "type": "local",
+      "command": [
+        "/opt/homebrew/bin/python3.11",
+        "/Users/mr.terry/.config/opencode/mcp/search_web_mcp.py"
+      ],
+      "enabled": true
     }
   }
 }
