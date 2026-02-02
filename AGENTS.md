@@ -18,6 +18,9 @@ When starting a session, you already know the terminal environment without needi
 ## Storage Preference
 Prefer storing caches, SDKs, repos, and large artifacts on /Volumes/ExternalSSD. Avoid writing new large data to the internal drive unless explicitly requested.
 
+## Search Web Trigger
+Use the searchWeb MCP when the user asks for online-only, current, or time-sensitive information (e.g., weather, news, prices, releases), or explicitly requests web search.
+
 ### Always Search
 - Run `qdrant_qdrant-find` at the start of every conversation
 - Run `qdrant_qdrant-find` before making decisions that could benefit from prior context
