@@ -3,7 +3,6 @@ bun.lockdata/
 logs/
 tools/ai-indexer/state/
 tools/ai-indexer/*.json
-tools/ai-indexer/
 __pycache__/
 *.db
 *.cbloom
