@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import logging
+import os
 from urllib.parse import parse_qs, urlparse
 from typing import Any, Dict, List
 
+import anyio
 import httpx
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+import mcp.types as types
 
 DUCKDUCKGO_HTML_URL = "https://html.duckduckgo.com/html/"
 MAX_RESULTS = 3
@@ -173,30 +177,82 @@ async def search_web(query: str, top_k: int) -> Dict[str, Any]:
     return {"results": output}
 
 
-def handle_request(request: Dict[str, Any]) -> Dict[str, Any]:
-    query = request.get("query") or request.get("q")
-    if not query:
-        return {"error": "Missing query"}
-    top_k = request.get("top_k") or request.get("limit") or MAX_RESULTS
+def parse_top_k(value: Any) -> int:
+    if value is None:
+        return MAX_RESULTS
     try:
-        top_k = int(top_k)
+        return int(value)
     except (TypeError, ValueError):
-        top_k = 5
-    return asyncio.run(search_web(str(query), top_k))
+        return MAX_RESULTS
+
+
+def build_tool_definition() -> types.Tool:
+    return types.Tool(
+        name="search_web",
+        description="Search the web and return top results.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query"},
+                "top_k": {
+                    "type": "integer",
+                    "description": "Maximum number of results",
+                },
+            },
+            "required": ["query"],
+        },
+    )
+
+
+def create_server() -> Server:
+    server = Server("searchWeb", version="1.0.0")
+
+    @server.list_tools()
+    async def list_tools(_: types.ListToolsRequest) -> types.ListToolsResult:
+        return types.ListToolsResult(tools=[build_tool_definition()])
+
+    @server.call_tool()
+    async def call_tool(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+        req = None
+        tool_name = None
+        arguments: Dict[str, Any] = {}
+        if args and isinstance(args[0], types.CallToolRequest):
+            req = args[0]
+        elif len(args) >= 2 and isinstance(args[0], str):
+            tool_name = args[0]
+            if isinstance(args[1], dict):
+                arguments = args[1]
+        elif "req" in kwargs and isinstance(kwargs["req"], types.CallToolRequest):
+            req = kwargs["req"]
+        elif "name" in kwargs:
+            tool_name = kwargs.get("name")
+            if isinstance(kwargs.get("arguments"), dict):
+                arguments = kwargs.get("arguments") or {}
+
+        if req is not None:
+            tool_name = req.params.name
+            arguments = req.params.arguments or {}
+
+        if tool_name != "search_web":
+            raise ValueError(f"Unknown tool: {tool_name}")
+        query = arguments.get("query") or arguments.get("q")
+        if not query:
+            return {"error": "Missing query"}
+        top_k = parse_top_k(arguments.get("top_k") or arguments.get("limit"))
+        return await search_web(str(query), top_k)
+
+    return server
+
+
+async def run_server() -> None:
+    server = create_server()
+    async with stdio_server() as (read_stream, write_stream):
+        init_options = server.create_initialization_options()
+        await server.run(read_stream, write_stream, init_options)
 
 
 def main() -> None:
-    raw = ""
-    try:
-        raw = input()
-    except EOFError:
-        raw = "{}"
-    try:
-        request = json.loads(raw) if raw else {}
-    except json.JSONDecodeError:
-        request = {}
-    response = handle_request(request)
-    print(json.dumps(response))
+    anyio.run(run_server)
 
 
 if __name__ == "__main__":

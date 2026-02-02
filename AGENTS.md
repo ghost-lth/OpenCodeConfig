@@ -20,6 +20,7 @@ Prefer storing caches, SDKs, repos, and large artifacts on /Volumes/ExternalSSD.
 
 ## Search Web Trigger
 Use the searchWeb MCP when the user asks for online-only, current, or time-sensitive information (e.g., weather, news, prices, releases), or explicitly requests web search.
+For GitHub repository details, prefer the GitHub API or `gh` CLI over searchWeb. Use searchWeb only if explicitly requested or if API/`gh` is unavailable.
 
 ### Always Search
 - Run `qdrant_qdrant-find` at the start of every conversation

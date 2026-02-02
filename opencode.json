@@ -11,6 +11,16 @@
       },
       "enabled": true
     },
+    "qdrantPicasso": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-qdrant"],
+      "environment": {
+        "QDRANT_URL": "http://localhost:6333",
+        "COLLECTION_NAME": "picasso-code-embeddings",
+        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
+      },
+      "enabled": true
+    },
     "searchWeb": {
       "type": "local",
       "command": [
