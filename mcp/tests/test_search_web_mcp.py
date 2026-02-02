@@ -95,6 +95,56 @@ async def test_fetch_duckduckgo_results_limits(monkeypatch):
     assert results == [{"title": "One", "url": "https://example.com/1", "snippet": "A"}]
 
 
+@pytest.mark.asyncio
+async def test_fetch_duckduckgo_results_skips_ads(monkeypatch):
+    html = make_ddg_html(
+        [
+            ("Ad", "https://duckduckgo.com/y.js?ad_domain=example.com", "A"),
+            ("Real", "https://example.com/real", "B"),
+        ]
+    )
+    monkeypatch.setattr(
+        search_web_mcp.httpx,
+        "AsyncClient",
+        lambda timeout=20: FakeAsyncClient(html),
+    )
+
+    results = await search_web_mcp.fetch_duckduckgo_results("test", 3)
+
+    assert results == [
+        {"title": "Real", "url": "https://example.com/real", "snippet": "B"}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_fetch_duckduckgo_results_skips_duckduckgo_urls(monkeypatch):
+    html = make_ddg_html(
+        [
+            (
+                "Wrapped",
+                "https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Freal",
+                "A",
+            ),
+            (
+                "Direct",
+                "https://duckduckgo.com/y.js?ad_domain=example.com",
+                "B",
+            ),
+        ]
+    )
+    monkeypatch.setattr(
+        search_web_mcp.httpx,
+        "AsyncClient",
+        lambda timeout=20: FakeAsyncClient(html),
+    )
+
+    results = await search_web_mcp.fetch_duckduckgo_results("test", 3)
+
+    assert results == [
+        {"title": "Wrapped", "url": "https://example.com/real", "snippet": "A"}
+    ]
+
+
 def test_normalize_crawl_result_with_markdown_raw():
     result = SimpleNamespace(
         markdown=SimpleNamespace(raw_markdown="raw", fit_markdown="fit")
@@ -117,10 +167,10 @@ def test_normalize_crawl_result_with_exception():
 
 @pytest.mark.asyncio
 async def test_search_web_uses_limit_and_returns_output(monkeypatch):
-    async def fake_summarize(content):
+    async def fake_facts(content, query):
         if content:
-            return {"summary": "sum", "summary_error": None}
-        return {"summary": "", "summary_error": None}
+            return {"facts": "facts", "facts_error": None}
+        return {"facts": "", "facts_error": None}
 
     async def fake_fetch(query, limit):
         assert limit == search_web_mcp.MAX_RESULTS
@@ -137,7 +187,7 @@ async def test_search_web_uses_limit_and_returns_output(monkeypatch):
 
     monkeypatch.setattr(search_web_mcp, "fetch_duckduckgo_results", fake_fetch)
     monkeypatch.setattr(search_web_mcp, "crawl_urls", fake_crawl)
-    monkeypatch.setattr(search_web_mcp, "summarize_content", fake_summarize)
+    monkeypatch.setattr(search_web_mcp, "extract_facts", fake_facts)
 
     result = await search_web_mcp.search_web("query", 10)
 
@@ -147,7 +197,7 @@ async def test_search_web_uses_limit_and_returns_output(monkeypatch):
                 "title": "One",
                 "url": "https://example.com/1",
                 "error": None,
-                "summary": "sum",
+                "facts": "facts",
             },
             {
                 "title": "Two",
@@ -197,3 +247,37 @@ def test_main_reads_json_and_writes_response(monkeypatch, capsys):
     output = capsys.readouterr().out.strip()
 
     assert json.loads(output) == {"results": [{"query": "x", "top_k": 1}]}
+
+
+@pytest.mark.asyncio
+async def test_ensure_model_available_missing(monkeypatch):
+    async def fake_get(*args, **kwargs):
+        class Resp:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"models": [{"name": "other:latest"}]}
+
+        return Resp()
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        get = staticmethod(fake_get)
+
+    monkeypatch.setattr(
+        search_web_mcp.httpx, "AsyncClient", lambda timeout=10: FakeClient()
+    )
+    search_web_mcp._MODEL_CHECK.update(
+        {"checked": False, "available": True, "error": None}
+    )
+
+    result = await search_web_mcp.ensure_model_available()
+
+    assert result["available"] is False
+    assert "Model not found" in result["error"]

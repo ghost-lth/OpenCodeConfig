@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import logging
 from urllib.parse import parse_qs, urlparse
 from typing import Any, Dict, List
 
@@ -13,8 +14,45 @@ from crawl4ai import AsyncWebCrawler
 DUCKDUCKGO_HTML_URL = "https://html.duckduckgo.com/html/"
 MAX_RESULTS = 3
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:latest")
 SUMMARY_MAX_CHARS = 6000
+_MODEL_CHECK = {"checked": False, "available": True, "error": None}
+
+
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("crawl4ai").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def get_ollama_base_url() -> str:
+    if "/api/" in OLLAMA_URL:
+        return OLLAMA_URL.split("/api/", 1)[0]
+    return OLLAMA_URL.rstrip("/")
+
+
+async def ensure_model_available() -> Dict[str, Any]:
+    if _MODEL_CHECK["checked"]:
+        return _MODEL_CHECK
+    base_url = get_ollama_base_url()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(f"{base_url}/api/tags")
+            response.raise_for_status()
+            data = response.json()
+        models = [m.get("name") for m in data.get("models", [])]
+        if OLLAMA_MODEL not in models:
+            _MODEL_CHECK.update(
+                {
+                    "checked": True,
+                    "available": False,
+                    "error": f"Model not found: {OLLAMA_MODEL}",
+                }
+            )
+            return _MODEL_CHECK
+        _MODEL_CHECK.update({"checked": True, "available": True, "error": None})
+    except Exception as exc:
+        _MODEL_CHECK.update({"checked": True, "available": False, "error": str(exc)})
+    return _MODEL_CHECK
 
 
 async def fetch_duckduckgo_results(query: str, limit: int) -> List[Dict[str, str]]:
@@ -45,6 +83,9 @@ async def fetch_duckduckgo_results(query: str, limit: int) -> List[Dict[str, str
             uddg = parse_qs(parsed.query).get("uddg", [""])[0]
             if uddg:
                 href = uddg
+                parsed = urlparse(href)
+        if parsed.netloc.endswith("duckduckgo.com"):
+            continue
         results.append(
             {
                 "title": link.get_text(strip=True),
@@ -78,14 +119,19 @@ def normalize_crawl_result(result: Any) -> Dict[str, Any]:
     return {"content": content}
 
 
-async def summarize_content(content: str) -> Dict[str, Any]:
+async def extract_facts(content: str, query: str) -> Dict[str, Any]:
     if not content:
-        return {"summary": "", "summary_error": None}
+        return {"facts": "", "facts_error": None}
+    model_status = await ensure_model_available()
+    if not model_status.get("available"):
+        return {"facts": "", "facts_error": model_status.get("error")}
     snippet = content[:SUMMARY_MAX_CHARS]
     prompt = (
-        "Summarize the following web page content in 4-6 bullet points. "
-        "Focus on key facts, avoid boilerplate, and keep it under 120 words.\n\n"
-        f"{snippet}"
+        "Answer the user query using only concrete facts found in the page. "
+        "Do not include generic site descriptions or boilerplate. Ignore navigation, "
+        "menus, legal, and layout. If key facts are missing, say 'not found'.\n\n"
+        f"User query: {query}\n\n"
+        f"Page content:\n{snippet}"
     )
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -95,10 +141,10 @@ async def summarize_content(content: str) -> Dict[str, Any]:
             )
             response.raise_for_status()
             data = response.json()
-        summary = data.get("response", "").strip()
-        return {"summary": summary, "summary_error": None}
+        facts = data.get("response", "").strip()
+        return {"facts": facts, "facts_error": None}
     except Exception as exc:
-        return {"summary": "", "summary_error": str(exc)}
+        return {"facts": "", "facts_error": str(exc)}
 
 
 async def search_web(query: str, top_k: int) -> Dict[str, Any]:
@@ -108,21 +154,21 @@ async def search_web(query: str, top_k: int) -> Dict[str, Any]:
     crawl_results = await crawl_urls(urls)
 
     payloads = [normalize_crawl_result(crawl) for crawl in crawl_results]
-    summaries = await asyncio.gather(
-        *(summarize_content(payload.get("content", "")) for payload in payloads)
+    facts_list = await asyncio.gather(
+        *(extract_facts(payload.get("content", ""), query) for payload in payloads)
     )
 
     output: List[Dict[str, Any]] = []
-    for item, payload, summary in zip(results, payloads, summaries):
+    for item, payload, facts in zip(results, payloads, facts_list):
         entry = {
             "title": item["title"],
             "url": item["url"],
             "error": payload.get("error"),
         }
-        summary_text = summary.get("summary")
-        summary_error = summary.get("summary_error")
-        if summary_text and not summary_error:
-            entry["summary"] = summary_text
+        facts_text = facts.get("facts")
+        facts_error = facts.get("facts_error")
+        if facts_text and not facts_error:
+            entry["facts"] = facts_text
         output.append(entry)
     return {"results": output}
 

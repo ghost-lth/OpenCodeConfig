@@ -15,17 +15,15 @@
 ## Instructions
 When starting a session, you already know the terminal environment without needing to run commands to detect it. Use the terminal environment information provided above.
 
-## Memory (Qdrant)
-Use the memory tools (`qdrant_qdrant-find` and `qdrant_qdrant-store`) proactively:
+## Storage Preference
+Prefer storing caches, SDKs, repos, and large artifacts on /Volumes/ExternalSSD. Avoid writing new large data to the internal drive unless explicitly requested.
 
-### When to Store Memories
-- User explicitly asks to remember something
-- User shares personal preferences (coding style, naming conventions, favorite tools)
-- User corrects you or provides important context about their workflow
-- User mentions project-specific knowledge that should persist across sessions
+### Always Search
+- Run `qdrant_qdrant-find` at the start of every conversation
+- Run `qdrant_qdrant-find` before making decisions that could benefit from prior context
+- Run `qdrant_qdrant-find` when the user references something from a previous session
 
-### When to Find Memories
-- At the start of conversations when context might be relevant
-- When the user asks about something you might have discussed before
-- When making decisions that could benefit from past preferences
-- When user references something from a previous session
+### Store Summaries
+- Store memory when it is likely useful across sessions
+- Always store when the user says "remember" or requests a "session summary"
+- When storing, update a rolling session summary (single entry)
