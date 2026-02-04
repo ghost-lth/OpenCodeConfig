@@ -101,6 +101,9 @@ def embed_texts_fastembed(texts: List[str], model: str) -> List[List[float]]:
 def qdrant_upsert(collection: str, points: List[Dict], base_url: str) -> None:
     if not points:
         return
+    # Check if points have vector dicts or lists
+    # If using named vectors, 'vector' field in point must correspond to config
+    # We will let the caller structure the point correctly.
     response = requests.put(
         f"{base_url}/collections/{collection}/points",
         json={"points": points},
@@ -221,6 +224,8 @@ def main() -> int:
             embeddings = embed_texts_http([c.text for c in chunks], model, embed_url)
         else:
             embeddings = embed_texts_fastembed([c.text for c in chunks], model)
+
+        vector_name = config.get("VectorName")
         points = []
         for chunk, vector in zip(chunks, embeddings):
             point_id = str(
@@ -229,14 +234,18 @@ def main() -> int:
                     f"{chunk.file_path}:{chunk.start}:{chunk.end}",
                 )
             )
+
+            point_vector = {vector_name: vector} if vector_name else vector
+
             points.append(
                 {
                     "id": point_id,
-                    "vector": vector,
+                    "vector": point_vector,
                     "payload": {
                         "file_path": chunk.file_path,
                         "start": chunk.start,
                         "end": chunk.end,
+                        "document": chunk.text,
                     },
                 }
             )
