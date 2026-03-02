@@ -28,20 +28,6 @@
         "/Users/mr.terry/.config/opencode/mcp/search_web_mcp.py"
       ],
       "enabled": true
-    },
-    "csharpLsp": {
-      "type": "local",
-      "command": [
-        "/opt/homebrew/bin/python3.11",
-        "/Users/mr.terry/.config/opencode/mcp/lsp_mcp.py"
-      ],
-      "environment": {
-        "DOTNET_ROOT": "/Users/mr.terry/Applications/opencode-tools/dotnet-sdk-10.0.102-osx-x64",
-        "PATH": "/Users/mr.terry/Applications/opencode-tools/dotnet-sdk-10.0.102-osx-x64:/usr/bin:/bin:/usr/sbin:/sbin",
-        "LSP_TCP_HOST": "127.0.0.1",
-        "LSP_TCP_PORT": "2087"
-      },
-      "enabled": true
     }
   }
 }

@@ -1,6 +1,6 @@
 # Global Agent Configuration
 
-## Environment (Authoritative)
+## Terminal Environment
 - Shell: zsh
 - Terminal Emulator: Kitty
 - Platform: macOS (darwin)
@@ -12,25 +12,22 @@
 - Homebrew
 - Docker
 
-## Execution Defaults
-- Do not probe the terminal environment; treat the values above as authoritative.
-- Store caches, SDKs, repos, and large artifacts on `/Volumes/ExternalSSD`.
-- Avoid writing large data to the internal drive unless explicitly requested.
+## Instructions
+When starting a session, you already know the terminal environment without needing to run commands to detect it. Use the terminal environment information provided above.
 
-## Web Search Policy
-- Use `searchWeb` for online-only, current, or time-sensitive info, or when explicitly requested.
-- For GitHub repository details, prefer GitHub API or `gh` CLI; use `searchWeb` only if those are unavailable.
+## Storage Preference
+Prefer storing caches, SDKs, repos, and large artifacts on /Volumes/ExternalSSD. Avoid writing new large data to the internal drive unless explicitly requested.
 
-## Memory Retrieval
-- Run `qdrant_qdrant-find` at the start of every conversation.
-- Run `qdrant_qdrant-find` before decisions that could benefit from prior context.
-- Run `qdrant_qdrant-find` when the user references a prior session.
-- When working inside `/Volumes/ExternalSSD/repo/work/picasso`, use `qdrantPicasso` for memory lookup.
+## Search Web Trigger
+Use the searchWeb MCP when the user asks for online-only, current, or time-sensitive information (e.g., weather, news, prices, releases), or explicitly requests web search.
+For GitHub repository details, prefer the GitHub API or `gh` CLI over searchWeb. Use searchWeb only if explicitly requested or if API/`gh` is unavailable.
 
-## Memory Storage
-- Store memory when it is likely useful across sessions.
-- Always store when the user says "remember" or requests a "session summary".
-- Maintain a rolling session summary (single entry).
+### Always Search
+- Run `qdrant_qdrant-find` at the start of every conversation
+- Run `qdrant_qdrant-find` before making decisions that could benefit from prior context
+- Run `qdrant_qdrant-find` when the user references something from a previous session
 
-## MCP Usage
-- When the project is C#, prefer using the `csharpLsp` MCP for LSP queries.
+### Store Summaries
+- Store memory when it is likely useful across sessions
+- Always store when the user says "remember" or requests a "session summary"
+- When storing, update a rolling session summary (single entry)
