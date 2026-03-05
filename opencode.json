@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "system_prompt": "仅在需要联网时：1) 先用 search_web 获取不超过 3 个结果；2) 选最相关的链接，用 webfetch 抓正文（优先 markdown/文本）；3) 回答必须基于抓取内容，若未抓到正文要说明；无须联网时不要调用 search_web/webfetch。",
   "mcp": {
     "qdrant": {
       "type": "local",
@@ -7,16 +8,6 @@
       "environment": {
         "QDRANT_URL": "http://localhost:6333",
         "COLLECTION_NAME": "opencode-memories",
-        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
-      },
-      "enabled": true
-    },
-    "qdrantPicasso": {
-      "type": "local",
-      "command": ["uvx", "mcp-server-qdrant"],
-      "environment": {
-        "QDRANT_URL": "http://localhost:6333",
-        "COLLECTION_NAME": "picasso-code-embeddings",
         "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
       },
       "enabled": true

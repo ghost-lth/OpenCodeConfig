@@ -4,6 +4,8 @@
 - Shell: zsh
 - Terminal Emulator: Kitty
 - Platform: macOS (darwin)
+- Python: /Volumes/ExternalSSD/dev/pyenv/shims/python3 (3.14.2)
+- uvx: /opt/homebrew/bin/uvx (0.9.27)
 
 ## Installed Tools
 - fzf
@@ -17,6 +19,10 @@ When starting a session, you already know the terminal environment without needi
 
 ## Storage Preference
 Prefer storing caches, SDKs, repos, and large artifacts on /Volumes/ExternalSSD. Avoid writing new large data to the internal drive unless explicitly requested.
+
+## Model/Embedding Cache
+- HF_HOME: /Volumes/ExternalSSD/dev/cache/huggingface
+- FASTEMBED_CACHE_PATH: (not set; set to /Volumes/ExternalSSD/model-cache/fastembed to centralize if needed)
 
 ## Search Web Trigger
 Use the searchWeb MCP when the user asks for online-only, current, or time-sensitive information (e.g., weather, news, prices, releases), or explicitly requests web search.
