@@ -1,0 +1,1 @@
+/Users/mr.terry/.config/opencode/superpowers/.opencode/plugins/superpowers.js
