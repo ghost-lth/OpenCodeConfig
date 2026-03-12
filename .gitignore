@@ -1,6 +1,7 @@
 node_modules
 bun.lockdata/
 logs/
+.worktrees/
 tools/ai-indexer/state/
 tools/ai-indexer/*.json
 __pycache__/
