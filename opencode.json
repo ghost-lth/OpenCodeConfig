@@ -1,24 +1,93 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "qdrant": {
-      "type": "local",
-      "command": ["uvx", "mcp-server-qdrant"],
-      "environment": {
-        "QDRANT_URL": "http://localhost:6333",
-        "COLLECTION_NAME": "opencode-memories",
-        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
-        "QDRANT_SCORE_THRESHOLD": "0.35"
+  "model": "azure-sol/gpt-5.6-sol",
+  "providers": {
+    "azure-sol": {
+      "package": "aisdk:@ai-sdk/openai",
+      "name": "Azure GPT-5.6 Sol",
+      "settings": {
+        "baseURL": "https://ophun-ml4oxgq6-eastus2.cognitiveservices.azure.com/openai/v1",
+        "apiKey": "{file:~/.config/mcp-eval/azure-gpt-5.6-sol/api-key}"
       },
-      "enabled": true
-    },
-    "searchWeb": {
-      "type": "local",
-      "command": [
-        "/opt/homebrew/bin/python3.11",
-        "/Users/mr.terry/.config/opencode/mcp/search_web_mcp.py"
-      ],
-      "enabled": true
+      "headers": {
+        "api-key": "{file:~/.config/mcp-eval/azure-gpt-5.6-sol/api-key}"
+      },
+      "models": {
+        "gpt-5.6-sol": {
+          "name": "GPT-5.6 Sol",
+          "capabilities": {
+            "tools": true,
+            "input": ["text", "image"],
+            "output": ["text"],
+            "reasoning": {
+              "supported": true
+            }
+          },
+          "limit": {
+            "context": 1050000,
+            "input": 922000,
+            "output": 128000
+          }
+        }
+      }
     }
+  },
+  "policies": [
+    { "action": "provider.use", "resource": "*", "effect": "deny" },
+    { "action": "provider.use", "resource": "azure-sol", "effect": "allow" }
+  ],
+  "mcp": {
+    "timeout": {
+      "catalog": 120000,
+      "execution": 120000
+    },
+    "servers": {
+      "qdrant": {
+        "type": "local",
+        "command": [
+          "/Volumes/ExternalSSD/dev/uv-tools/mcp-server-qdrant/bin/mcp-server-qdrant"
+        ],
+        "environment": {
+          "QDRANT_URL": "http://localhost:6333",
+          "COLLECTION_NAME": "opencode-memories",
+          "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+          "FASTEMBED_CACHE_PATH": "/Volumes/ExternalSSD/model-cache/fastembed",
+          "QDRANT_SCORE_THRESHOLD": "0.35",
+          "QDRANT_SEARCH_LIMIT": "3",
+          "TOOL_STORE_DESCRIPTION": "Store one durable, non-secret memory only after searching for related entries. Prefer update for changed facts and no action for duplicates. Do not store transient task state, one-off failures, or readily discoverable versions and paths.",
+          "TOOL_FIND_DESCRIPTION": "Search only when the current task clearly requires durable personal context, a prior decision, or reusable troubleshooting history unavailable locally. Do not call speculatively for ordinary coding, environment discovery, or facts available in files and commands. Treat runtime hints older than 30 days as unverified."
+        },
+        "disabled": false
+      },
+      "editor": {
+        "type": "local",
+        "command": [
+          "/Volumes/ExternalSSD/repo/editor-mcp/editor-mcp",
+          "-root",
+          "/Volumes/ExternalSSD/repo/opencode-stable",
+          "-root",
+          "/Volumes/ExternalSSD/repo/editor-mcp",
+          "-root",
+          "/Volumes/ExternalSSD/repo/personal/6.824",
+          "-socket",
+          "/Volumes/ExternalSSD/opencode/tmp/opencode/editor-live/nvim.sock"
+        ],
+        "disabled": false
+      }
+    }
+  },
+  "plugins": [
+    "@dietrichgebert/ponytail"
+  ],
+  "compaction": {
+    "auto": true,
+    "keep": {
+      "tokens": 12000
+    },
+    "buffer": 842000
+  },
+  "tool_output": {
+    "max_lines": 500,
+    "max_bytes": 16000
   }
 }
